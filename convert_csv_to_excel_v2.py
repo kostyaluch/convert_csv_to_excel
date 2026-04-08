@@ -107,8 +107,8 @@ def format_worksheet(ws):
 def save_dataframe_to_excel(df, excel_path):
     """Save *df* to *excel_path*.
 
-    If the DataFrame exceeds EXCEL_MAX_ROWS − 1 data rows the output is
-    automatically split into *_part1.xlsx*, *_part2.xlsx*, … files.
+    If the DataFrame exceeds EXCEL_MAX_ROWS - 1 data rows the output is
+    automatically split into *_part1.xlsx*, *_part2.xlsx*, ... files.
     Returns a list of paths that were actually written.
     BUG-09: output path is made unique so existing files are never overwritten silently.
     BUG-08: workbook is always closed via finally to prevent descriptor leaks.
@@ -421,7 +421,7 @@ class CsvToExcelConverterApp:
 
     def _poll_queue(self):
         try:
-            while True:
+            for _ in range(20):  # process at most 20 messages per cycle to keep GUI responsive
                 msg = self._queue.get_nowait()
                 msg_type = msg.get("type")
                 if msg_type == "log":
