@@ -244,6 +244,11 @@ class CsvToExcelConverterApp:
         style.configure('TLabel', background=LIGHT_GREEN, font=FONT)
         style.configure('TFrame', background=LIGHT_GREEN)
         style.configure('Vertical.TScrollbar', background=LIGHT_GREEN)
+        style.configure('TProgressbar',
+                        background=DARK_GREEN,
+                        troughcolor='white',
+                        borderwidth=1,
+                        thickness=20)
 
         main_frame = ttk.Frame(master, padding=(20, 10, 20, 10), style='TFrame')
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -427,7 +432,9 @@ class CsvToExcelConverterApp:
                 if msg_type == "log":
                     self.log(msg["text"])
                 elif msg_type == "progress":
-                    self.progress_var.set(msg["value"])
+                    val = msg["value"]
+                    self.progress_var.set(val)
+                    self.progress_bar["value"] = val
                 elif msg_type == "done":
                     self._on_conversion_done(msg["success"], msg["error"])
                     return
