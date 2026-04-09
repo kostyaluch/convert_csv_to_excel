@@ -173,6 +173,8 @@ def pair_ua_columns(df):
     for col in cols:
         if col in placed:
             continue
+        if col in ua_set:
+            continue  # skip (ua) columns here; they will be placed right after their base
         ordered.append(col)
         placed.add(col)
         ua_variant = col + ua_suffix
