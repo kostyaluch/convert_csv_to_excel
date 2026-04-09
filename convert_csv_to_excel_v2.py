@@ -153,9 +153,25 @@ def save_dataframe_to_excel(df, excel_path):
     return saved_files
 
 
+def _ua_variant_of(col):
+    """Return the expected ``(ua)`` variant name for *col*.
+
+    Handles two naming patterns:
+    * ``'Name'``          → ``'Name (ua)'``
+    * ``'Name;ID'``       → ``'Name (ua);ID'``   (attribute columns with a numeric ID)
+    """
+    m = re.match(r'^(.*?)(;\d+)$', col)
+    if m:
+        return m.group(1) + " (ua)" + m.group(2)
+    return col + " (ua)"
+
+
 def pair_ua_columns(df):
     """Reorder *df* columns so that every ``'X (ua)'`` column immediately follows
-    the matching base column ``'X'``.
+    the matching base column ``'X'``, but **only** when both columns contain
+    digits in their name (i.e. they carry a numeric attribute ID such as
+    ``';20775'``).  Columns without digits (plain service headers like
+    ``'Назва (ua)'``) are left in their original positions.
 
     Columns that have no ``(ua)`` counterpart keep their original position.
     ``(ua)`` columns that have no matching base are appended at the end in their
@@ -163,8 +179,17 @@ def pair_ua_columns(df):
     the number of base↔(ua) pairs that were actually moved.
     """
     cols = list(df.columns)
-    ua_suffix = " (ua)"
-    ua_set = {c for c in cols if c.endswith(ua_suffix)}
+    col_set = set(cols)
+
+    # Build set of (ua) columns that are eligible for pairing:
+    # they must contain digits (carry an ID) and their base column must also exist.
+    ua_paired = set()
+    for col in cols:
+        if re.search(r'\d', col):
+            ua_var = _ua_variant_of(col)
+            if ua_var in col_set and ua_var != col:
+                # col is a base; mark its ua variant as paired
+                ua_paired.add(ua_var)
 
     ordered = []
     placed = set()
@@ -173,17 +198,19 @@ def pair_ua_columns(df):
     for col in cols:
         if col in placed:
             continue
-        if col in ua_set:
-            continue  # skip (ua) columns here; they will be placed right after their base
+        if col in ua_paired:
+            continue  # skip eligible (ua) columns; placed right after their base
         ordered.append(col)
         placed.add(col)
-        ua_variant = col + ua_suffix
-        if ua_variant in ua_set and ua_variant not in placed:
-            ordered.append(ua_variant)
-            placed.add(ua_variant)
-            n_pairs += 1
+        # Only attempt pairing when the base column itself has digits
+        if re.search(r'\d', col):
+            ua_var = _ua_variant_of(col)
+            if ua_var in ua_paired and ua_var not in placed:
+                ordered.append(ua_var)
+                placed.add(ua_var)
+                n_pairs += 1
 
-    # append any (ua) columns whose base was not found (placed already handles dups)
+    # append any (ua) columns whose base was not found
     for col in cols:
         if col not in placed:
             ordered.append(col)
