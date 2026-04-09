@@ -32,11 +32,17 @@ DEFAULT_HEADER_MAP = {
 
 HEADER_MAP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "header_map.json")
 
-LIGHT_GREEN = "#e5fbe2"
-DARK_GREEN = "#56ad4c"
-BUTTON_GREEN = "#8fdc8a"
+LIGHT_GREEN = "#edf7eb"
+DARK_GREEN = "#3d9942"
+BUTTON_GREEN = "#6dbf67"
+CONVERT_GREEN = "#2e7d32"
+CARD_BG = "#ffffff"
+HEADER_BG = "#2e7d32"
+HEADER_FG = "#ffffff"
+BORDER_COLOR = "#b8e0b5"
 FONT = ("Segoe UI", 11)
-TITLE_FONT = ("Segoe UI", 14, "bold")
+SMALL_FONT = ("Segoe UI", 9)
+TITLE_FONT = ("Segoe UI", 15, "bold")
 
 # ---------------------------------------------------------------------------
 # Header map persistence
@@ -146,6 +152,74 @@ def save_dataframe_to_excel(df, excel_path):
 
     return saved_files
 
+
+def pair_ua_columns(df):
+    """Reorder *df* columns so that every ``'X (ua)'`` column immediately follows
+    the matching base column ``'X'``.
+
+    Columns that have no ``(ua)`` counterpart keep their original position.
+    ``(ua)`` columns that have no matching base are appended at the end in their
+    original relative order.  Returns (reordered_df, n_pairs) where *n_pairs* is
+    the number of base↔(ua) pairs that were actually moved.
+    """
+    cols = list(df.columns)
+    ua_suffix = " (ua)"
+    ua_set = {c for c in cols if c.endswith(ua_suffix)}
+
+    ordered = []
+    placed = set()
+    n_pairs = 0
+
+    for col in cols:
+        if col in placed:
+            continue
+        ordered.append(col)
+        placed.add(col)
+        ua_variant = col + ua_suffix
+        if ua_variant in ua_set and ua_variant not in placed:
+            ordered.append(ua_variant)
+            placed.add(ua_variant)
+            n_pairs += 1
+
+    # append any (ua) columns whose base was not found (placed already handles dups)
+    for col in cols:
+        if col not in placed:
+            ordered.append(col)
+
+    return df[ordered], n_pairs
+
+# ---------------------------------------------------------------------------
+# Tooltip helper
+# ---------------------------------------------------------------------------
+
+class ToolTip:
+    """Simple hover tooltip for any widget."""
+
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self._tip = None
+        widget.bind("<Enter>", self._show)
+        widget.bind("<Leave>", self._hide)
+
+    def _show(self, _event=None):
+        if self._tip:
+            return
+        x = self.widget.winfo_rootx() + 24
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 4
+        self._tip = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+        tk.Label(
+            tw, text=self.text, background="#fffde7", relief="solid",
+            borderwidth=1, font=SMALL_FONT, padx=6, pady=3
+        ).pack()
+
+    def _hide(self, _event=None):
+        if self._tip:
+            self._tip.destroy()
+            self._tip = None
+
 # ---------------------------------------------------------------------------
 # Header-map editor dialog
 # ---------------------------------------------------------------------------
@@ -228,79 +302,173 @@ class CsvToExcelConverterApp:
     def __init__(self, master):
         self.master = master
         master.title("Конвертер CSV у Excel")
-        master.geometry("700x640")
-        master.configure(bg=LIGHT_GREEN)
+        master.geometry("740x680")
+        master.configure(bg=HEADER_BG)
+        master.resizable(True, True)
 
+        # Center on screen
+        master.update_idletasks()
+        sw, sh = master.winfo_screenwidth(), master.winfo_screenheight()
+        master.geometry(f"740x680+{(sw - 740) // 2}+{(sh - 680) // 2}")
+
+        # ── Styles ────────────────────────────────────────────────────────
         style = ttk.Style()
         style.theme_use('clam')
-        style.configure('TButton',
-                        font=FONT,
-                        background=BUTTON_GREEN,
-                        foreground='black',
-                        borderwidth=1,
-                        focusthickness=3,
-                        focuscolor=DARK_GREEN)
-        style.map('TButton', background=[('active', DARK_GREEN)])
+        style.configure('TButton', font=FONT, background=BUTTON_GREEN, foreground='black',
+                        borderwidth=0, focusthickness=2, focuscolor=DARK_GREEN, padding=(10, 6))
+        style.map('TButton',
+                  background=[('active', DARK_GREEN), ('disabled', '#cccccc')],
+                  foreground=[('disabled', '#888888')])
+        style.configure('Convert.TButton', font=("Segoe UI", 13, "bold"),
+                        background=CONVERT_GREEN, foreground='white',
+                        borderwidth=0, padding=(24, 11))
+        style.map('Convert.TButton',
+                  background=[('active', '#1b5e20'), ('disabled', '#aaaaaa')],
+                  foreground=[('disabled', '#dddddd')])
         style.configure('TLabel', background=LIGHT_GREEN, font=FONT)
         style.configure('TFrame', background=LIGHT_GREEN)
-        style.configure('Vertical.TScrollbar', background=LIGHT_GREEN)
+        style.configure('TLabelframe', background=LIGHT_GREEN,
+                        bordercolor=BORDER_COLOR, relief='groove')
+        style.configure('TLabelframe.Label', background=LIGHT_GREEN,
+                        font=("Segoe UI", 10, "bold"), foreground=DARK_GREEN)
+        style.configure('TCheckbutton', background=LIGHT_GREEN, font=FONT)
+        style.configure('TRadiobutton', background=LIGHT_GREEN, font=FONT)
+        style.configure('Vertical.TScrollbar', background=LIGHT_GREEN,
+                        arrowcolor=DARK_GREEN, troughcolor=BORDER_COLOR)
+        style.configure('TProgressbar', background=DARK_GREEN,
+                        troughcolor=BORDER_COLOR, borderwidth=0, thickness=18)
 
-        main_frame = ttk.Frame(master, padding=(20, 10, 20, 10), style='TFrame')
+        # ── Header bar ────────────────────────────────────────────────────
+        header_bar = tk.Frame(master, bg=HEADER_BG, pady=11)
+        header_bar.pack(fill=tk.X, side=tk.TOP)
+
+        tk.Label(
+            header_bar, text="📊  Конвертер CSV у Excel",
+            font=TITLE_FONT, bg=HEADER_BG, fg=HEADER_FG
+        ).pack(side=tk.LEFT, padx=20)
+
+        gear_btn = tk.Button(
+            header_bar, text="⚙", font=("Segoe UI", 14),
+            bg=HEADER_BG, fg=HEADER_FG,
+            activebackground="#1b5e20", activeforeground=HEADER_FG,
+            relief="flat", cursor="hand2", borderwidth=0,
+            command=self.open_header_map_dialog
+        )
+        gear_btn.pack(side=tk.RIGHT, padx=14)
+        ToolTip(gear_btn, "Словник заголовків")
+
+        # ── Main content ──────────────────────────────────────────────────
+        main_frame = ttk.Frame(master, padding=(18, 14, 18, 10))
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Label(main_frame, text="Конвертер CSV у Excel", font=TITLE_FONT,
-                  background=LIGHT_GREEN, foreground=DARK_GREEN).pack(pady=(0, 8))
+        # ── Files card ────────────────────────────────────────────────────
+        files_lf = ttk.LabelFrame(main_frame, text="  📁  Файли  ", padding=(10, 6))
+        files_lf.pack(fill=tk.X, pady=(0, 10))
 
-        self.select_button = ttk.Button(main_frame, text="Вибрати файли", command=self.select_files)
-        self.select_button.pack(pady=7)
+        ttk.Label(
+            files_lf,
+            text="Оберіть один або декілька CSV-файлів для конвертації",
+            font=SMALL_FONT, foreground="#777777"
+        ).pack(anchor="w", pady=(0, 5))
 
+        list_frame = ttk.Frame(files_lf)
+        list_frame.pack(fill=tk.X)
+
+        scrollbar_y = ttk.Scrollbar(list_frame, orient=tk.VERTICAL)
         self.files_listbox = tk.Listbox(
-            main_frame, width=90, height=6, font=("Segoe UI", 10),
-            bg="white", borderwidth=2, relief="groove",
-            highlightcolor=DARK_GREEN, selectbackground=BUTTON_GREEN
+            list_frame, height=5, font=("Segoe UI", 10),
+            bg=CARD_BG, borderwidth=1, relief="solid",
+            highlightcolor=DARK_GREEN, selectbackground=BUTTON_GREEN,
+            activestyle='none', yscrollcommand=scrollbar_y.set
         )
-        self.files_listbox.pack(pady=7)
+        scrollbar_y.config(command=self.files_listbox.yview)
+        self.files_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Formatting mode
+        file_btn_bar = ttk.Frame(files_lf)
+        file_btn_bar.pack(fill=tk.X, pady=(7, 0))
+
+        self.select_button = ttk.Button(
+            file_btn_bar, text="📂  Вибрати файли", command=self.select_files
+        )
+        self.select_button.pack(side=tk.LEFT, padx=(0, 8))
+
+        self.clear_button = ttk.Button(
+            file_btn_bar, text="🗑  Очистити", command=self.clear_files
+        )
+        self.clear_button.pack(side=tk.LEFT)
+
+        self.files_count_label = ttk.Label(
+            file_btn_bar, text="Файлів не вибрано",
+            font=SMALL_FONT, foreground="#888888"
+        )
+        self.files_count_label.pack(side=tk.RIGHT, padx=4)
+
+        # ── Options card ──────────────────────────────────────────────────
+        opts_lf = ttk.LabelFrame(main_frame, text="  ⚙  Налаштування  ", padding=(10, 8))
+        opts_lf.pack(fill=tk.X, pady=(0, 10))
+
         self.clean_var = tk.StringVar(value="clean")
-        mode_frame = ttk.Frame(main_frame)
-        mode_frame.pack(pady=4)
-        ttk.Label(mode_frame, text="Форматування:").pack(side=tk.LEFT, padx=(0, 8))
-        ttk.Radiobutton(mode_frame, text="Очищений", variable=self.clean_var, value="clean").pack(side=tk.LEFT)
-        ttk.Radiobutton(mode_frame, text="Оригінальний", variable=self.clean_var, value="original").pack(side=tk.LEFT)
+        mode_frame = ttk.Frame(opts_lf)
+        mode_frame.pack(anchor="w", pady=(0, 5))
+        ttk.Label(mode_frame, text="Форматування:").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Radiobutton(
+            mode_frame, text="Очищений", variable=self.clean_var, value="clean"
+        ).pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Radiobutton(
+            mode_frame, text="Оригінальний", variable=self.clean_var, value="original"
+        ).pack(side=tk.LEFT)
 
-        # Options row: delete CSV + header map editor
-        options_frame = ttk.Frame(main_frame)
-        options_frame.pack(pady=4)
         self.delete_csv_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
-            options_frame, text="Видалити CSV після конвертації",
+            opts_lf, text="Видалити CSV-файли після конвертації",
             variable=self.delete_csv_var
-        ).pack(side=tk.LEFT, padx=(0, 20))
-        ttk.Button(options_frame, text="Словник заголовків",
-                   command=self.open_header_map_dialog).pack(side=tk.LEFT)
+        ).pack(anchor="w")
 
-        self.convert_button = ttk.Button(main_frame, text="Конвертувати у Excel", command=self.convert_files)
-        self.convert_button.pack(pady=10)
+        self.pair_ua_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            opts_lf, text="Групувати (ua)-стовпці поруч із базовими",
+            variable=self.pair_ua_var
+        ).pack(anchor="w")
 
-        # Progress bar
+        # ── Convert button ────────────────────────────────────────────────
+        self.convert_button = ttk.Button(
+            main_frame, text="🚀  Конвертувати у Excel",
+            command=self.convert_files, style='Convert.TButton'
+        )
+        self.convert_button.pack(pady=(2, 10))
+
+        # ── Progress ──────────────────────────────────────────────────────
+        progress_frame = ttk.Frame(main_frame)
+        progress_frame.pack(fill=tk.X, pady=(0, 8))
+
         self.progress_var = tk.DoubleVar(value=0.0)
         self.progress_bar = ttk.Progressbar(
-            main_frame, variable=self.progress_var,
-            maximum=100, mode='determinate', length=500
+            progress_frame, variable=self.progress_var,
+            maximum=100, mode='determinate'
         )
-        self.progress_bar.pack(pady=(0, 6))
+        self.progress_bar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8))
 
-        ttk.Label(main_frame, text="Журнал процесу:", font=("Segoe UI", 12, "bold"),
-                  background=LIGHT_GREEN, foreground=DARK_GREEN).pack(anchor="w", pady=(8, 2), padx=4)
+        self.progress_label = ttk.Label(
+            progress_frame, text="0%", font=SMALL_FONT,
+            foreground=DARK_GREEN, width=5, anchor="e"
+        )
+        self.progress_label.pack(side=tk.RIGHT)
+
+        # ── Log section ───────────────────────────────────────────────────
+        ttk.Label(
+            main_frame, text="Журнал процесу",
+            font=("Segoe UI", 11, "bold"), foreground=DARK_GREEN
+        ).pack(anchor="w", pady=(0, 3))
 
         self.log_text = scrolledtext.ScrolledText(
-            main_frame, width=90, height=9, font=("Segoe UI", 10),
-            bg="#f7fdf7", borderwidth=2, relief="groove"
+            main_frame, height=8, font=("Segoe UI", 10),
+            bg=CARD_BG, borderwidth=1, relief="solid", wrap=tk.WORD
         )
-        self.log_text.pack(pady=5)
+        self.log_text.pack(fill=tk.BOTH, expand=True)
         self.log_text.configure(state='disabled')
 
+        # ── State ─────────────────────────────────────────────────────────
         self.selected_files = []
         self.header_map = load_header_map()
         self._queue = queue.Queue()
@@ -319,7 +487,16 @@ class CsvToExcelConverterApp:
             self.files_listbox.delete(0, tk.END)
             for f in self.selected_files:
                 self.files_listbox.insert(tk.END, f)
+            n = len(self.selected_files)
+            self.files_count_label.configure(
+                text=f"{n} файл{'ів' if n != 1 else ''} вибрано", foreground=DARK_GREEN
+            )
             self.log("Файли вибрано. Готові до конвертації.")
+
+    def clear_files(self):
+        self.selected_files = []
+        self.files_listbox.delete(0, tk.END)
+        self.files_count_label.configure(text="Файлів не вибрано", foreground="#888888")
 
     # ------------------------------------------------------------------
     # Header map dialog
@@ -374,6 +551,7 @@ class CsvToExcelConverterApp:
         delete_csv = self.delete_csv_var.get()
         header_map = self.header_map
         clean_mode = self.clean_var.get() == "clean"
+        pair_ua = self.pair_ua_var.get()
 
         for idx, file_path in enumerate(files):
             try:
@@ -392,6 +570,13 @@ class CsvToExcelConverterApp:
                 rename_map = {k: v for k, v in header_map.items() if k in df.columns}
                 if rename_map:
                     df = df.rename(columns=rename_map)
+
+                # Pair (ua) columns immediately after their base counterpart
+                if pair_ua:
+                    df, n_pairs = pair_ua_columns(df)
+                    if n_pairs:
+                        self._queue.put({"type": "log",
+                                         "text": f"   Згруповано пар (ua): {n_pairs}"})
 
                 excel_base_path = os.path.splitext(file_path)[0] + '.xlsx'
                 self._queue.put({"type": "log", "text": "   Збереження у Excel..."})
@@ -427,7 +612,10 @@ class CsvToExcelConverterApp:
                 if msg_type == "log":
                     self.log(msg["text"])
                 elif msg_type == "progress":
-                    self.progress_var.set(msg["value"])
+                    val = msg["value"]
+                    self.progress_var.set(val)
+                    self.progress_bar["value"] = val
+                    self.progress_label.configure(text=f"{val:.0f}%")
                 elif msg_type == "done":
                     self._on_conversion_done(msg["success"], msg["error"])
                     return
@@ -437,6 +625,8 @@ class CsvToExcelConverterApp:
 
     def _on_conversion_done(self, success_count, error_count):
         self.progress_var.set(100.0)
+        self.progress_bar["value"] = 100.0
+        self.progress_label.configure(text="100%")
         self.log(f"\nЗавершено! Успішно: {success_count}, з помилкою: {error_count}")
         self.select_button.configure(state='normal')
         self.convert_button.configure(state='normal')
