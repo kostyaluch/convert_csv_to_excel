@@ -31,7 +31,7 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-!convert_csv_to_excel_v2.spec
+!convert_csv_to_excel_v3.spec
 
 # Installer logs
 pip-log.txt
