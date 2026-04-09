@@ -152,6 +152,42 @@ def save_dataframe_to_excel(df, excel_path):
 
     return saved_files
 
+
+def pair_ua_columns(df):
+    """Reorder *df* columns so that every ``'X (ua)'`` column immediately follows
+    the matching base column ``'X'``.
+
+    Columns that have no ``(ua)`` counterpart keep their original position.
+    ``(ua)`` columns that have no matching base are appended at the end in their
+    original relative order.  Returns (reordered_df, n_pairs) where *n_pairs* is
+    the number of base↔(ua) pairs that were actually moved.
+    """
+    cols = list(df.columns)
+    ua_suffix = " (ua)"
+    ua_set = {c for c in cols if c.endswith(ua_suffix)}
+
+    ordered = []
+    placed = set()
+    n_pairs = 0
+
+    for col in cols:
+        if col in placed:
+            continue
+        ordered.append(col)
+        placed.add(col)
+        ua_variant = col + ua_suffix
+        if ua_variant in ua_set and ua_variant not in placed:
+            ordered.append(ua_variant)
+            placed.add(ua_variant)
+            n_pairs += 1
+
+    # append any (ua) columns whose base was not found (placed already handles dups)
+    for col in cols:
+        if col not in placed:
+            ordered.append(col)
+
+    return df[ordered], n_pairs
+
 # ---------------------------------------------------------------------------
 # Tooltip helper
 # ---------------------------------------------------------------------------
@@ -389,6 +425,12 @@ class CsvToExcelConverterApp:
             variable=self.delete_csv_var
         ).pack(anchor="w")
 
+        self.pair_ua_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            opts_lf, text="Групувати (ua)-стовпці поруч із базовими",
+            variable=self.pair_ua_var
+        ).pack(anchor="w")
+
         # ── Convert button ────────────────────────────────────────────────
         self.convert_button = ttk.Button(
             main_frame, text="🚀  Конвертувати у Excel",
@@ -509,6 +551,7 @@ class CsvToExcelConverterApp:
         delete_csv = self.delete_csv_var.get()
         header_map = self.header_map
         clean_mode = self.clean_var.get() == "clean"
+        pair_ua = self.pair_ua_var.get()
 
         for idx, file_path in enumerate(files):
             try:
@@ -527,6 +570,13 @@ class CsvToExcelConverterApp:
                 rename_map = {k: v for k, v in header_map.items() if k in df.columns}
                 if rename_map:
                     df = df.rename(columns=rename_map)
+
+                # Pair (ua) columns immediately after their base counterpart
+                if pair_ua:
+                    df, n_pairs = pair_ua_columns(df)
+                    if n_pairs:
+                        self._queue.put({"type": "log",
+                                         "text": f"   Згруповано пар (ua): {n_pairs}"})
 
                 excel_base_path = os.path.splitext(file_path)[0] + '.xlsx'
                 self._queue.put({"type": "log", "text": "   Збереження у Excel..."})
