@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['convert_csv_to_excel_v2.py'],
+    ['convert_csv_to_excel_v3.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='convert_csv_to_excel_v2',
+    name='convert_csv_to_excel_v3',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
