@@ -11,6 +11,7 @@ import threading
 import queue
 import json
 import time
+import sys
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -30,7 +31,13 @@ DEFAULT_HEADER_MAP = {
     "goods_title_uk": "Назва (ua)",
 }
 
-HEADER_MAP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "header_map.json")
+def get_app_directory():
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+HEADER_MAP_FILE = os.path.join(get_app_directory(), "header_map.json")
 
 LIGHT_GREEN = "#edf7eb"
 DARK_GREEN = "#3d9942"
