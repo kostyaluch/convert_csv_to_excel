@@ -36,6 +36,7 @@ LIGHT_GREEN = "#edf7eb"
 DARK_GREEN = "#3d9942"
 BUTTON_GREEN = "#6dbf67"
 CONVERT_GREEN = "#2e7d32"
+ACTIVE_GREEN = "#1b5e20"
 CARD_BG = "#ffffff"
 HEADER_BG = "#2e7d32"
 HEADER_FG = "#ffffff"
@@ -359,7 +360,7 @@ class CsvToExcelConverterApp:
                         background=CONVERT_GREEN, foreground='white',
                         borderwidth=0, padding=(24, 11))
         style.map('Convert.TButton',
-                  background=[('active', '#1b5e20'), ('disabled', '#aaaaaa')],
+                  background=[('active', ACTIVE_GREEN), ('disabled', '#aaaaaa')],
                   foreground=[('disabled', '#dddddd')])
         style.configure('TLabel', background=LIGHT_GREEN, font=FONT)
         style.configure('TFrame', background=LIGHT_GREEN)
@@ -377,7 +378,7 @@ class CsvToExcelConverterApp:
         )
         style.map(
             'Card.TCheckbutton',
-            foreground=[('active', '#1b5e20'), ('selected', '#1b5e20')],
+            foreground=[('active', ACTIVE_GREEN), ('selected', ACTIVE_GREEN)],
             background=[('active', LIGHT_GREEN), ('selected', LIGHT_GREEN)]
         )
         style.configure('TRadiobutton', background=LIGHT_GREEN, font=FONT)
@@ -398,7 +399,7 @@ class CsvToExcelConverterApp:
         gear_btn = tk.Button(
             header_bar, text="⚙", font=("Segoe UI", 14),
             bg=HEADER_BG, fg=HEADER_FG,
-            activebackground="#1b5e20", activeforeground=HEADER_FG,
+            activebackground=ACTIVE_GREEN, activeforeground=HEADER_FG,
             relief="flat", cursor="hand2", borderwidth=0,
             command=self.open_header_map_dialog
         )
