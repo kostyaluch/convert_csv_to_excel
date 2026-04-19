@@ -375,18 +375,22 @@ class CsvToExcelConverterApp:
                         bordercolor=BORDER_COLOR, relief='groove')
         style.configure('TLabelframe.Label', background=LIGHT_GREEN,
                         font=("Segoe UI", 10, "bold"), foreground=DARK_GREEN)
-        style.configure('TCheckbutton', background=LIGHT_GREEN, font=FONT)
+        style.configure('TCheckbutton', background=LIGHT_GREEN, font=FONT,
+                        indicatorcolor='white', indicatorrelief='flat')
         style.configure(
             'Card.TCheckbutton',
             background=LIGHT_GREEN,
             foreground=DARK_GREEN,
             font=("Segoe UI", 11, "bold"),
-            padding=(2, 6)
+            padding=(2, 6),
+            indicatorcolor='white',
+            indicatorrelief='flat'
         )
         style.map(
             'Card.TCheckbutton',
             foreground=[('active', ACTIVE_GREEN), ('selected', ACTIVE_GREEN)],
-            background=[('active', LIGHT_GREEN), ('selected', LIGHT_GREEN)]
+            background=[('active', LIGHT_GREEN), ('selected', LIGHT_GREEN)],
+            indicatorcolor=[('selected', DARK_GREEN), ('!selected', 'white')]
         )
         style.configure('TRadiobutton', background=LIGHT_GREEN, font=FONT)
         style.configure('Vertical.TScrollbar', background=LIGHT_GREEN,
