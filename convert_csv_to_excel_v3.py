@@ -264,6 +264,7 @@ class HeaderMapDialog(tk.Toplevel):
         self.geometry("520x420")
         self.result = None
         self._rows = []
+        self._canvas = None
 
         ttk.Label(self, text="Оригінальна назва → Нова назва", font=FONT,
                   background=LIGHT_GREEN).pack(pady=(10, 4))
@@ -273,6 +274,7 @@ class HeaderMapDialog(tk.Toplevel):
         container.pack(fill=tk.BOTH, expand=True, padx=10, pady=4)
 
         canvas = tk.Canvas(container, bg=LIGHT_GREEN, highlightthickness=0)
+        self._canvas = canvas
         scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
         self.scroll_frame = ttk.Frame(canvas)
         self.scroll_frame.bind(
@@ -289,7 +291,7 @@ class HeaderMapDialog(tk.Toplevel):
 
         btn_frame = ttk.Frame(self)
         btn_frame.pack(pady=6)
-        ttk.Button(btn_frame, text="Додати рядок", command=lambda: self._add_row()).pack(side=tk.LEFT, padx=4)
+        ttk.Button(btn_frame, text="Додати слово", command=lambda: self._add_row()).pack(side=tk.LEFT, padx=4)
         ttk.Button(btn_frame, text="Видалити останній", command=self._delete_last).pack(side=tk.LEFT, padx=4)
         ttk.Button(btn_frame, text="Зберегти", command=self._save).pack(side=tk.LEFT, padx=4)
         ttk.Button(btn_frame, text="Скасувати", command=self.destroy).pack(side=tk.LEFT, padx=4)
@@ -302,10 +304,15 @@ class HeaderMapDialog(tk.Toplevel):
         row_frame.pack(fill=tk.X, pady=2)
         orig_var = tk.StringVar(value=orig)
         renamed_var = tk.StringVar(value=renamed)
-        ttk.Entry(row_frame, textvariable=orig_var, width=24).pack(side=tk.LEFT, padx=(4, 2))
+        orig_entry = ttk.Entry(row_frame, textvariable=orig_var, width=24)
+        orig_entry.pack(side=tk.LEFT, padx=(4, 2))
         ttk.Label(row_frame, text="→").pack(side=tk.LEFT, padx=2)
         ttk.Entry(row_frame, textvariable=renamed_var, width=24).pack(side=tk.LEFT, padx=(2, 4))
         self._rows.append((row_frame, orig_var, renamed_var))
+        if self._canvas and not orig and not renamed:
+            self.update_idletasks()
+            self._canvas.yview_moveto(1.0)
+            orig_entry.focus_set()
 
     def _delete_last(self):
         if self._rows:
@@ -361,6 +368,18 @@ class CsvToExcelConverterApp:
         style.configure('TLabelframe.Label', background=LIGHT_GREEN,
                         font=("Segoe UI", 10, "bold"), foreground=DARK_GREEN)
         style.configure('TCheckbutton', background=LIGHT_GREEN, font=FONT)
+        style.configure(
+            'Card.TCheckbutton',
+            background=LIGHT_GREEN,
+            foreground=DARK_GREEN,
+            font=("Segoe UI", 11, "bold"),
+            padding=(2, 6)
+        )
+        style.map(
+            'Card.TCheckbutton',
+            foreground=[('active', '#1b5e20'), ('selected', '#1b5e20')],
+            background=[('active', LIGHT_GREEN), ('selected', LIGHT_GREEN)]
+        )
         style.configure('TRadiobutton', background=LIGHT_GREEN, font=FONT)
         style.configure('Vertical.TScrollbar', background=LIGHT_GREEN,
                         arrowcolor=DARK_GREEN, troughcolor=BORDER_COLOR)
@@ -451,13 +470,13 @@ class CsvToExcelConverterApp:
         self.delete_csv_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
             opts_lf, text="Видалити CSV-файли після конвертації",
-            variable=self.delete_csv_var
+            variable=self.delete_csv_var, style='Card.TCheckbutton', cursor='hand2'
         ).pack(anchor="w")
 
         self.pair_ua_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(
             opts_lf, text="Групувати (ua)-стовпці поруч із базовими",
-            variable=self.pair_ua_var
+            variable=self.pair_ua_var, style='Card.TCheckbutton', cursor='hand2'
         ).pack(anchor="w")
 
         # ── Convert button ────────────────────────────────────────────────
