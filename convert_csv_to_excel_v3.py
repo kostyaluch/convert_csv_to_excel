@@ -74,7 +74,38 @@ def save_header_map(header_map):
 # Data helpers
 # ---------------------------------------------------------------------------
 
-def clean_cell_value(value):
+def _should_skip_comma_replacement(column_name):
+    """Check if comma replacement should be skipped for this column.
+    
+    Skip comma replacement for:
+    1. Columns without characteristic IDs (no digits in name)
+    2. "Описание;1" and "Промо-описание;111253" columns and their language variants
+    """
+    # Skip if column has no digits (no characteristic ID)
+    if not re.search(r'\d', column_name):
+        return True
+    
+    # Extract base column name without language suffix
+    # E.g., "Описание (ua);1" -> "Описание;1"
+    base_name = re.sub(r' \([a-z]{2}\)', '', column_name)
+    
+    # Check if it's a description or promo-description column
+    # Match patterns like "Описание;1", "Описание (ua);1", "Промо-описание;111253", etc.
+    if re.match(r'^Описание(;|$)', base_name):
+        return True
+    if re.match(r'^Промо-описание(;|$)', base_name):
+        return True
+    
+    return False
+
+
+def clean_cell_value(value, column_name=None):
+    """Clean cell value with optional column-specific rules.
+    
+    Args:
+        value: The cell value to clean
+        column_name: Optional column name for column-specific cleaning rules
+    """
     if pd.isnull(value):
         return value
     if isinstance(value, (int, float)):
@@ -89,7 +120,11 @@ def clean_cell_value(value):
     txt = txt.replace("\\'", "'")
     for ch in ["\r\n", "\n", "\r", "\t", "\f", "\v"]:  # BUG-05: removed "\s" and "\\"
         txt = txt.replace(ch, "")
-    txt = re.sub(r',(?=[^\s])', '; ', txt)
+    
+    # Only replace commas if column name allows it
+    if column_name is None or not _should_skip_comma_replacement(column_name):
+        txt = re.sub(r',(?=[^\s])', '; ', txt)
+    
     txt = re.sub(' +', ' ', txt)
     txt = txt.strip()
     return txt
@@ -161,6 +196,19 @@ def save_dataframe_to_excel(df, excel_path):
     return saved_files
 
 
+def _language_variant_of(col, lang_code):
+    """Return the expected language variant name for *col*.
+
+    Handles two naming patterns:
+    * ``'Name'``          → ``'Name (ua)'`` or ``'Name (pl)'``
+    * ``'Name;ID'``       → ``'Name (ua);ID'`` or ``'Name (pl);ID'``   (attribute columns with a numeric ID)
+    """
+    m = re.match(r'^(.*?)(;\d+)$', col)
+    if m:
+        return m.group(1) + f" ({lang_code})" + m.group(2)
+    return col + f" ({lang_code})"
+
+
 def _ua_variant_of(col):
     """Return the expected ``(ua)`` variant name for *col*.
 
@@ -168,10 +216,69 @@ def _ua_variant_of(col):
     * ``'Name'``          → ``'Name (ua)'``
     * ``'Name;ID'``       → ``'Name (ua);ID'``   (attribute columns with a numeric ID)
     """
-    m = re.match(r'^(.*?)(;\d+)$', col)
-    if m:
-        return m.group(1) + " (ua)" + m.group(2)
-    return col + " (ua)"
+    return _language_variant_of(col, "ua")
+
+
+def _pl_variant_of(col):
+    """Return the expected ``(pl)`` variant name for *col*.
+
+    Handles two naming patterns:
+    * ``'Name'``          → ``'Name (pl)'``
+    * ``'Name;ID'``       → ``'Name (pl);ID'``   (attribute columns with a numeric ID)
+    """
+    return _language_variant_of(col, "pl")
+
+
+def pair_language_columns(df, lang_code):
+    """Reorder *df* columns so that every ``'X (lang)'`` column immediately follows
+    the matching base column ``'X'``, but **only** when both columns contain
+    digits in their name (i.e. they carry a numeric attribute ID such as
+    ``';20775'``).  Columns without digits (plain service headers like
+    ``'Назва (ua)'``) are left in their original positions.
+
+    Columns that have no ``(lang)`` counterpart keep their original position.
+    ``(lang)`` columns that have no matching base are appended at the end in their
+    original relative order.  Returns (reordered_df, n_pairs) where *n_pairs* is
+    the number of base↔(lang) pairs that were actually moved.
+    """
+    cols = list(df.columns)
+    col_set = set(cols)
+
+    # Build set of (lang) columns that are eligible for pairing:
+    # they must contain digits (carry an ID) and their base column must also exist.
+    lang_paired = set()
+    for col in cols:
+        if re.search(r'\d', col):
+            lang_var = _language_variant_of(col, lang_code)
+            if lang_var in col_set and lang_var != col:
+                # col is a base; mark its lang variant as paired
+                lang_paired.add(lang_var)
+
+    ordered = []
+    placed = set()
+    n_pairs = 0
+
+    for col in cols:
+        if col in placed:
+            continue
+        if col in lang_paired:
+            continue  # skip eligible (lang) columns; placed right after their base
+        ordered.append(col)
+        placed.add(col)
+        # Only attempt pairing when the base column itself has digits
+        if re.search(r'\d', col):
+            lang_var = _language_variant_of(col, lang_code)
+            if lang_var in lang_paired and lang_var not in placed:
+                ordered.append(lang_var)
+                placed.add(lang_var)
+                n_pairs += 1
+
+    # append any (lang) columns whose base was not found
+    for col in cols:
+        if col not in placed:
+            ordered.append(col)
+
+    return df[ordered], n_pairs
 
 
 def pair_ua_columns(df):
@@ -186,44 +293,22 @@ def pair_ua_columns(df):
     original relative order.  Returns (reordered_df, n_pairs) where *n_pairs* is
     the number of base↔(ua) pairs that were actually moved.
     """
-    cols = list(df.columns)
-    col_set = set(cols)
+    return pair_language_columns(df, "ua")
 
-    # Build set of (ua) columns that are eligible for pairing:
-    # they must contain digits (carry an ID) and their base column must also exist.
-    ua_paired = set()
-    for col in cols:
-        if re.search(r'\d', col):
-            ua_var = _ua_variant_of(col)
-            if ua_var in col_set and ua_var != col:
-                # col is a base; mark its ua variant as paired
-                ua_paired.add(ua_var)
 
-    ordered = []
-    placed = set()
-    n_pairs = 0
+def pair_pl_columns(df):
+    """Reorder *df* columns so that every ``'X (pl)'`` column immediately follows
+    the matching base column ``'X'`` (or after ``'X (ua)'`` if present), but **only** 
+    when both columns contain digits in their name (i.e. they carry a numeric attribute 
+    ID such as ``';20775'``).  Columns without digits (plain service headers like
+    ``'Назва (pl)'``) are left in their original positions.
 
-    for col in cols:
-        if col in placed:
-            continue
-        if col in ua_paired:
-            continue  # skip eligible (ua) columns; placed right after their base
-        ordered.append(col)
-        placed.add(col)
-        # Only attempt pairing when the base column itself has digits
-        if re.search(r'\d', col):
-            ua_var = _ua_variant_of(col)
-            if ua_var in ua_paired and ua_var not in placed:
-                ordered.append(ua_var)
-                placed.add(ua_var)
-                n_pairs += 1
-
-    # append any (ua) columns whose base was not found
-    for col in cols:
-        if col not in placed:
-            ordered.append(col)
-
-    return df[ordered], n_pairs
+    Columns that have no ``(pl)`` counterpart keep their original position.
+    ``(pl)`` columns that have no matching base are appended at the end in their
+    original relative order.  Returns (reordered_df, n_pairs) where *n_pairs* is
+    the number of base↔(pl) pairs that were actually moved.
+    """
+    return pair_language_columns(df, "pl")
 
 # ---------------------------------------------------------------------------
 # Tooltip helper
@@ -624,7 +709,9 @@ class CsvToExcelConverterApp:
 
                 if clean_mode:
                     self._queue.put({"type": "log", "text": "   Очищення даних..."})
-                    df = df.applymap(clean_cell_value)
+                    # Apply column-specific cleaning
+                    for col in df.columns:
+                        df[col] = df[col].apply(lambda x: clean_cell_value(x, col))
 
                 # Rename headers according to the dictionary
                 rename_map = {k: v for k, v in header_map.items() if k in df.columns}
@@ -633,10 +720,16 @@ class CsvToExcelConverterApp:
 
                 # Pair (ua) columns immediately after their base counterpart
                 if pair_ua:
-                    df, n_pairs = pair_ua_columns(df)
-                    if n_pairs:
+                    df, n_pairs_ua = pair_ua_columns(df)
+                    if n_pairs_ua:
                         self._queue.put({"type": "log",
-                                         "text": f"   Згруповано пар (ua): {n_pairs}"})
+                                         "text": f"   Згруповано пар (ua): {n_pairs_ua}"})
+                    
+                    # Then pair (pl) columns after (ua)
+                    df, n_pairs_pl = pair_pl_columns(df)
+                    if n_pairs_pl:
+                        self._queue.put({"type": "log",
+                                         "text": f"   Згруповано пар (pl): {n_pairs_pl}"})
 
                 excel_base_path = os.path.splitext(file_path)[0] + '.xlsx'
                 self._queue.put({"type": "log", "text": "   Збереження у Excel..."})
