@@ -298,10 +298,13 @@ def pair_ua_columns(df):
 
 def pair_pl_columns(df):
     """Reorder *df* columns so that every ``'X (pl)'`` column immediately follows
-    the matching base column ``'X'`` (or after ``'X (ua)'`` if present), but **only** 
-    when both columns contain digits in their name (i.e. they carry a numeric attribute 
-    ID such as ``';20775'``).  Columns without digits (plain service headers like
+    the matching base column ``'X'``, but **only** when both columns contain
+    digits in their name (i.e. they carry a numeric attribute ID such as
+    ``';20775'``).  Columns without digits (plain service headers like
     ``'Назва (pl)'``) are left in their original positions.
+
+    When used after pair_ua_columns, Polish columns will be placed after the base
+    column and its Ukrainian variant (if present), creating the order: Base, (ua), (pl).
 
     Columns that have no ``(pl)`` counterpart keep their original position.
     ``(pl)`` columns that have no matching base are appended at the end in their
@@ -710,6 +713,7 @@ class CsvToExcelConverterApp:
                 if clean_mode:
                     self._queue.put({"type": "log", "text": "   Очищення даних..."})
                     # Apply column-specific cleaning
+                    # Each column is processed with its name to enable column-specific rules
                     for col in df.columns:
                         df[col] = df[col].apply(lambda x: clean_cell_value(x, col))
 
