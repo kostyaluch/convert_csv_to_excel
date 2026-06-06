@@ -208,6 +208,6 @@ marimo/_lsp/
 __marimo__/
 
 # Application-specific
-header_map.json
+# header_map.json - Required for compilation, tracked in git
 *.xlsx
 *.csv
