@@ -98,7 +98,7 @@ a = Analysis(
         'encodings.cp1251',
         'encodings.cp1252',
     ],
-    hookspath=[],
+    hookspath=['hooks'],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
