@@ -115,8 +115,11 @@ pyinstaller convert_csv_to_excel_v3.spec
 convert_csv_to_excel_v3.py           # основний код програми
 convert_csv_to_excel_v3.spec         # конфігурація PyInstaller
 logo.ico                             # іконка програми
-install_context_menu.ps1             # скрипт встановлення контекстного меню
-uninstall_context_menu.ps1           # скрипт видалення контекстного меню
+requirements.txt                     # залежності Python
+install_context_menu.bat             # скрипт встановлення (Batch, рекомендовано)
+uninstall_context_menu.bat           # скрипт видалення (Batch)
+install_context_menu.ps1             # скрипт встановлення (PowerShell)
+uninstall_context_menu.ps1           # скрипт видалення (PowerShell)
 install_context_menu.reg             # ручна реєстрація (альтернатива)
 uninstall_context_menu.reg           # ручне видалення (альтернатива)
 CONTEXT_MENU_INSTALLATION.md         # детальна інструкція встановлення
