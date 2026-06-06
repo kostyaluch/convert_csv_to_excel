@@ -1,0 +1,11 @@
+{
+  "goods_article": "Артикул",
+  "goods_category_title": "Назва категорії",
+  "goods_docket": "Краткое описание",
+  "goods_docket_uk": "Короткий опис (ua)",
+  "goods_status": "Статус",
+  "goods_state": "Стан",
+  "goods_title": "Название",
+  "goods_title_uk": "Назва (ua)",
+  "goods_id": "id"
+}
