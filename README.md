@@ -101,11 +101,25 @@ pip install pandas openpyxl tkinterdnd2 pyinstaller
 
 ## Збірка .exe
 
+### Швидкий старт
+
 ```bash
 pyinstaller convert_csv_to_excel_v3.spec
 ```
 
-Готовий виконуваний файл з'явиться у папці `dist/`.
+Готовий виконуваний файл з'явиться у папці `dist/CSVtoExcel.exe`.
+
+### Професійна збірка
+
+Програма вже налаштована для професійної компіляції з:
+- ✅ **Вбудованим логотипом** (logo.ico)
+- ✅ **Метаданими версії** у властивостях .exe
+- ✅ **UPX стисненням** для зменшення розміру
+- ✅ **Режимом без консолі** - чисто GUI застосунок
+
+📖 **Детальні інструкції**: [BUILD.md](BUILD.md)  
+🚀 **Швидкий гайд**: [BUILD_QUICK.md](BUILD_QUICK.md)  
+✅ **Чеклист розповсюдження**: [DISTRIBUTION_CHECKLIST.md](DISTRIBUTION_CHECKLIST.md)
 
 ---
 
@@ -113,19 +127,31 @@ pyinstaller convert_csv_to_excel_v3.spec
 
 ```
 convert_csv_to_excel_v3.py           # основний код програми
-convert_csv_to_excel_v3.spec         # конфігурація PyInstaller
-logo.ico                             # іконка програми
+convert_csv_to_excel_v3.spec         # конфігурація PyInstaller (професійна збірка)
+logo.ico                             # іконка програми (18KB)
 requirements.txt                     # залежності Python
-install_context_menu.bat             # скрипт встановлення (Batch, рекомендовано)
-uninstall_context_menu.bat           # скрипт видалення (Batch)
-install_context_menu.ps1             # скрипт встановлення (PowerShell)
-uninstall_context_menu.ps1           # скрипт видалення (PowerShell)
-install_context_menu.reg             # ручна реєстрація (альтернатива)
-uninstall_context_menu.reg           # ручне видалення (альтернатива)
-CONTEXT_MENU_INSTALLATION.md         # детальна інструкція встановлення
-USER_MANUAL.md                       # інструкція користувача
-DEVELOPER_GUIDE.md                   # інструкція для розробників
+
+# Документація
 README.md                            # цей файл
+BUILD.md                             # детальна інструкція збірки .exe
+BUILD_QUICK.md                       # швидкий гайд збірки
+DISTRIBUTION_CHECKLIST.md            # чеклист для розповсюдження
+USER_MANUAL.md                       # інструкція користувача
+QUICK_START.md                       # швидкий старт
+DEVELOPER_GUIDE.md                   # інструкція для розробників
+CONTEXT_MENU_INSTALLATION.md         # встановлення контекстного меню
+CHANGELOG.md                         # історія змін
+
+# Конфігурація
+header_map.json                      # словник перейменування заголовків
+
+# Скрипти інтеграції Windows
+install_context_menu.bat             # встановлення (рекомендовано)
+uninstall_context_menu.bat           # видалення
+install_context_menu.ps1             # PowerShell версія
+uninstall_context_menu.ps1           # PowerShell видалення
+install_context_menu.reg             # альтернатива через реєстр
+uninstall_context_menu.reg           # видалення через реєстр
 ```
 
 ---
