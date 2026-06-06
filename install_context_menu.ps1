@@ -17,7 +17,7 @@ Write-Host "Executable path: $exePath" -ForegroundColor Cyan
 
 # Ensure .csv file association exists
 $csvFileType = "csvfile"
-if (-Not (Test-Path "HKCR:\.$csv")) {
+if (-Not (Test-Path "HKCR:\.csv")) {
     New-Item -Path "HKCR:\.csv" -Force | Out-Null
 }
 Set-ItemProperty -Path "HKCR:\.csv" -Name "(Default)" -Value $csvFileType -Force
