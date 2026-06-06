@@ -1,5 +1,15 @@
 # Інструкція по збірці професійного .exe файлу
 
+> 🎉 **ОНОВЛЕНО:** Всі проблеми компіляції виправлено! Див. [COMPILATION_FIXED.md](COMPILATION_FIXED.md) та [COMPILE_QUICK.md](COMPILE_QUICK.md)
+
+## Швидкий старт
+
+### Автоматична збірка (Рекомендовано)
+```bash
+build_and_verify.bat
+```
+Цей скрипт автоматично перевірить середовище, встановить залежності, зібере EXE та верифікує результат.
+
 ## Підготовка середовища
 
 ### 1. Встановлення Python
@@ -12,6 +22,13 @@ python --version
 ```bash
 pip install -r requirements.txt
 ```
+
+**Включені залежності:**
+- pandas, openpyxl, tkinterdnd2 (основні бібліотеки)
+- pytz, tzdata (для pandas)
+- et-xmlfile (для openpyxl)
+- python-dateutil (обробка дат)
+- pyinstaller (компіляція)
 
 ## Збірка виконуваного файлу
 
@@ -28,6 +45,9 @@ pyinstaller convert_csv_to_excel_v3.spec
 ✅ **Логотип програми** - файл `logo.ico` автоматично вбудовується як іконка .exe  
 ✅ **Бібліотека tkinterdnd2** - підтримка drag-and-drop включена  
 ✅ **Усі залежності** - pandas, openpyxl, tkinter упаковані в один файл  
+✅ **50+ Hidden imports** - всі необхідні підмодулі pandas та openpyxl  
+✅ **PyInstaller hooks** - автоматичний збір залежностей через hooks/  
+✅ **Файли даних** - header_map.json та logo.ico включені  
 ✅ **Режим без консолі** - програма запускається без cmd вікна  
 ✅ **UPX стиснення** - зменшений розмір файлу  
 
@@ -73,17 +93,26 @@ dist/CSVtoExcel.exe
 
 ## Поширені проблеми
 
+> ✅ **Всі типові проблеми вже виправлено!** Детальніше див. [COMPILATION_FIXED.md](COMPILATION_FIXED.md)
+
 ### Програма не запускається
+- ✅ **Виправлено:** Додано всі необхідні hidden imports
 - Переконайтеся, що `logo.ico` присутній під час збірки
 - Перевірте, що всі залежності встановлені
 
 ### Помилка "tkdnd not found"
-- Файл `.spec` автоматично включає tkdnd бібліотеку
+- ✅ **Виправлено:** Файл `.spec` автоматично включає tkdnd бібліотеку
 - Переконайтеся, що tkinterdnd2 встановлено: `pip install tkinterdnd2`
+
+### Помилка "ModuleNotFoundError: No module named 'pandas._libs'"
+- ✅ **Виправлено:** Додано pandas._libs та підмодулі до hiddenimports
+
+### Помилка "ModuleNotFoundError: No module named 'pytz'"
+- ✅ **Виправлено:** Додано pytz та tzdata до requirements.txt
 
 ### Великий розмір .exe файлу
 - Це нормально для standalone застосунку з усіма залежностями
-- Розмір ~50-80 МБ є типовим для програм з pandas та openpyxl
+- Розмір ~60-100 МБ є типовим для програм з pandas та openpyxl
 
 ## Налаштування збірки
 
