@@ -89,5 +89,6 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='logo.ico',  # Application icon
-    version='version_info',  # Windows version information
+    # Note: version parameter is not supported in EXE() for one-file mode
+    # To add version info, use a custom version file with --version-file flag
 )
