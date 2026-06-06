@@ -9,6 +9,9 @@
 ### Конвертація файлів
 
 - **Масова конвертація** — обирайте одразу кілька CSV-файлів і конвертуйте їх одним натисканням кнопки.
+- **Drag-and-Drop** — перетягніть CSV-файли безпосередньо у вікно програми для швидкого додавання.
+- **Контекстне меню Windows** — натисніть правою кнопкою миші на CSV файл у провіднику та виберіть "Конвертувати у Excel". Детальніше в [CONTEXT_MENU_INSTALLATION.md](CONTEXT_MENU_INSTALLATION.md).
+- **Командний рядок** — передавайте файли як аргументи для автоматичної конвертації.
 - **UTF-8 кодування** — CSV-файли зчитуються у кодуванні UTF-8 з комою як роздільником.
 - **Фоновий потік** — конвертація виконується у окремому потоці; інтерфейс залишається активним і відповідним під час обробки.
 - **Прогрес-бар** — відображає відсоток виконання у реальному часі.
@@ -74,8 +77,25 @@
 | pandas | зчитування CSV |
 | openpyxl | запис та форматування `.xlsx` |
 | tkinter | графічний інтерфейс |
+| tkinterdnd2 | підтримка drag-and-drop |
 | threading | фонова обробка без заморожування UI |
 | PyInstaller | збірка у автономний `.exe` |
+
+---
+
+## Встановлення залежностей
+
+Перед збіркою програми встановіть необхідні бібліотеки:
+
+```bash
+pip install -r requirements.txt
+```
+
+Або встановіть вручну:
+
+```bash
+pip install pandas openpyxl tkinterdnd2 pyinstaller
+```
 
 ---
 
@@ -92,12 +112,38 @@ pyinstaller convert_csv_to_excel_v3.spec
 ## Структура проєкту
 
 ```
-convert_csv_to_excel_v3.py   # основний код програми
-convert_csv_to_excel_v3.spec # конфігурація PyInstaller
-logo.ico                     # іконка програми
-USER_MANUAL.md               # інструкція користувача
-README.md                    # цей файл
+convert_csv_to_excel_v3.py           # основний код програми
+convert_csv_to_excel_v3.spec         # конфігурація PyInstaller
+logo.ico                             # іконка програми
+requirements.txt                     # залежності Python
+install_context_menu.bat             # скрипт встановлення (Batch, рекомендовано)
+uninstall_context_menu.bat           # скрипт видалення (Batch)
+install_context_menu.ps1             # скрипт встановлення (PowerShell)
+uninstall_context_menu.ps1           # скрипт видалення (PowerShell)
+install_context_menu.reg             # ручна реєстрація (альтернатива)
+uninstall_context_menu.reg           # ручне видалення (альтернатива)
+CONTEXT_MENU_INSTALLATION.md         # детальна інструкція встановлення
+USER_MANUAL.md                       # інструкція користувача
+DEVELOPER_GUIDE.md                   # інструкція для розробників
+README.md                            # цей файл
 ```
+
+---
+
+## Для розробників
+
+Детальна інформація про збірку, тестування та розробку доступна в [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
+
+---
+
+## Використання контекстного меню
+
+Після встановлення контекстного меню:
+1. Натисніть правою кнопкою миші на будь-який CSV файл у провіднику Windows
+2. Виберіть **"Конвертувати у Excel"**
+3. Програма автоматично запуститься та сконвертує файл
+
+Детальна інструкція з встановлення доступна в файлі [CONTEXT_MENU_INSTALLATION.md](CONTEXT_MENU_INSTALLATION.md).
 
 ---
 

@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext, ttk
+from tkinterdnd2 import DND_FILES, TkinterDnD
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Alignment
 from openpyxl.utils import get_column_letter
@@ -515,7 +516,7 @@ class CsvToExcelConverterApp:
 
         ttk.Label(
             files_lf,
-            text="Оберіть один або декілька CSV-файлів для конвертації",
+            text="Оберіть файли або перетягніть CSV-файли сюди",
             font=SMALL_FONT, foreground="#777777"
         ).pack(anchor="w", pady=(0, 5))
 
@@ -620,6 +621,13 @@ class CsvToExcelConverterApp:
         self.selected_files = []
         self.header_map = load_header_map()
         self._queue = queue.Queue()
+        
+        # ── Enable drag and drop ──────────────────────────────────────────
+        self.files_listbox.drop_target_register(DND_FILES)
+        self.files_listbox.dnd_bind('<<Drop>>', self.on_drop)
+        
+        # ── Process command line arguments ────────────────────────────────
+        self.process_command_line_args()
 
     # ------------------------------------------------------------------
     # File selection
@@ -645,6 +653,53 @@ class CsvToExcelConverterApp:
         self.selected_files = []
         self.files_listbox.delete(0, tk.END)
         self.files_count_label.configure(text="Файлів не вибрано", foreground="#888888")
+
+    def on_drop(self, event):
+        """Handle drag and drop of files"""
+        # Parse the dropped files
+        files = self.master.tk.splitlist(event.data)
+        # Filter only CSV files
+        csv_files = [f for f in files if f.lower().endswith('.csv')]
+        
+        if csv_files:
+            # Add to existing selection
+            for f in csv_files:
+                if f not in self.selected_files:
+                    self.selected_files.append(f)
+            
+            # Update listbox
+            self.files_listbox.delete(0, tk.END)
+            for f in self.selected_files:
+                self.files_listbox.insert(tk.END, f)
+            
+            # Update counter
+            n = len(self.selected_files)
+            self.files_count_label.configure(
+                text=f"{n} файл{'ів' if n != 1 else ''} вибрано", foreground=DARK_GREEN
+            )
+            self.log(f"Додано {len(csv_files)} файл{'ів' if len(csv_files) != 1 else ''} через drag-and-drop.")
+        else:
+            self.log("⚠ Перетягнуті файли не є CSV-файлами.")
+    
+    def process_command_line_args(self):
+        """Process files passed as command line arguments"""
+        if len(sys.argv) > 1:
+            csv_files = [f for f in sys.argv[1:] if f.lower().endswith('.csv') and os.path.exists(f)]
+            
+            if csv_files:
+                self.selected_files = csv_files
+                self.files_listbox.delete(0, tk.END)
+                for f in self.selected_files:
+                    self.files_listbox.insert(tk.END, f)
+                
+                n = len(self.selected_files)
+                self.files_count_label.configure(
+                    text=f"{n} файл{'ів' if n != 1 else ''} вибрано", foreground=DARK_GREEN
+                )
+                self.log(f"Завантажено {n} файл{'ів' if n != 1 else ''} з командного рядка.")
+                
+                # Auto-start conversion if files were passed via command line
+                self.master.after(500, self.convert_files)
 
     # ------------------------------------------------------------------
     # Header map dialog
@@ -801,6 +856,6 @@ class CsvToExcelConverterApp:
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = TkinterDnD.Tk()
     app = CsvToExcelConverterApp(root)
     root.mainloop()

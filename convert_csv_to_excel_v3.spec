@@ -1,12 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
+from pathlib import Path
+
+# Get tkinterdnd2 package path
+import tkinterdnd2
+tkdnd_path = Path(tkinterdnd2.__file__).parent
 
 a = Analysis(
     ['convert_csv_to_excel_v3.py'],
     pathex=[],
     binaries=[],
-    datas=[],
-    hiddenimports=['pandas', 'openpyxl', 'openpyxl.styles', 'openpyxl.utils', 'html', 're', 'queue', 'threading', 'json'],
+    datas=[(str(tkdnd_path / 'tkdnd'), 'tkdnd')],
+    hiddenimports=['pandas', 'openpyxl', 'openpyxl.styles', 'openpyxl.utils', 'html', 're', 'queue', 'threading', 'json', 'tkinterdnd2'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
