@@ -124,8 +124,15 @@ install_context_menu.reg             # ручна реєстрація (альт
 uninstall_context_menu.reg           # ручне видалення (альтернатива)
 CONTEXT_MENU_INSTALLATION.md         # детальна інструкція встановлення
 USER_MANUAL.md                       # інструкція користувача
+DEVELOPER_GUIDE.md                   # інструкція для розробників
 README.md                            # цей файл
 ```
+
+---
+
+## Для розробників
+
+Детальна інформація про збірку, тестування та розробку доступна в [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md).
 
 ---
 
