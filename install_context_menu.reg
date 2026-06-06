@@ -1,0 +1,15 @@
+Windows Registry Editor Version 5.00
+
+; Add "Convert to Excel" option to CSV file context menu
+[HKEY_CLASSES_ROOT\.csv]
+@="csvfile"
+
+[HKEY_CLASSES_ROOT\csvfile]
+@="CSV File"
+
+[HKEY_CLASSES_ROOT\csvfile\shell\ConvertToExcel]
+@="Конвертувати у Excel"
+"Icon"="%INSTALL_PATH%\\convert_csv_to_excel_v3.exe,0"
+
+[HKEY_CLASSES_ROOT\csvfile\shell\ConvertToExcel\command]
+@="\"%INSTALL_PATH%\\convert_csv_to_excel_v3.exe\" \"%1\""
