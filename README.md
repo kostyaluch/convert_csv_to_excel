@@ -88,6 +88,12 @@
 Перед збіркою програми встановіть необхідні бібліотеки:
 
 ```bash
+pip install -r requirements.txt
+```
+
+Або встановіть вручну:
+
+```bash
 pip install pandas openpyxl tkinterdnd2 pyinstaller
 ```
 
